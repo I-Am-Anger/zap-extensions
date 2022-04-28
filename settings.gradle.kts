@@ -24,6 +24,7 @@ var addOns = listOf(
     "codedx",
     "commonlib",
     "coreLang",
+	"csrfModule",
     "custompayloads",
     "diff",
     "directorylistv1",
