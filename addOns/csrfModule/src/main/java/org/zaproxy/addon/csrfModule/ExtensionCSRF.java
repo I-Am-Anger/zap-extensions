@@ -43,7 +43,7 @@ import org.zaproxy.zap.view.ZapMenuItem;
  *
  * @see #hook(ExtensionHook)
  */
-public class ExtensionSimpleExample extends ExtensionAdaptor {
+public class ExtensionCSRF extends ExtensionAdaptor {
 
     // The name is public so that other extensions can access it
     public static final String NAME = "csrfModuleCheck";
@@ -60,7 +60,7 @@ public class ExtensionSimpleExample extends ExtensionAdaptor {
     private static final String RESOURCES = "resources";
 
     private static final ImageIcon ICON =
-            new ImageIcon(ExtensionSimpleExample.class.getResource(RESOURCES + "/cake.png"));
+            new ImageIcon(ExtensionCSRF.class.getResource(RESOURCES + "/cake.png"));
 
     private static final String EXAMPLE_FILE = "example/ExampleFile.txt";
 
@@ -68,11 +68,11 @@ public class ExtensionSimpleExample extends ExtensionAdaptor {
     private RightClickMsgMenu popupMsgMenuExample;
     private AbstractPanel statusPanel;
 
-    private SimpleExampleAPI api;
+    private CSRFAPI api;
 
-    private static final Logger LOGGER = LogManager.getLogger(ExtensionSimpleExample.class);
+    private static final Logger LOGGER = LogManager.getLogger(ExtensionCSRF.class);
 
-    public ExtensionSimpleExample() {
+    public ExtensionCSRF() {
         super(NAME);
         setI18nPrefix(PREFIX);
     }
@@ -81,7 +81,7 @@ public class ExtensionSimpleExample extends ExtensionAdaptor {
     public void hook(ExtensionHook extensionHook) {
         super.hook(extensionHook);
 
-        this.api = new SimpleExampleAPI();
+        this.api = new CSRFAPI();
         extensionHook.addApiImplementor(this.api);
 
         // As long as we're not running as a daemon
@@ -157,7 +157,7 @@ public class ExtensionSimpleExample extends ExtensionAdaptor {
                 View.getSingleton()
                         .showWarningDialog(
                                 Constant.messages.getString(
-                                        ExtensionSimpleExample.PREFIX + ".error.nofile",
+                                        ExtensionCSRF.PREFIX + ".error.nofile",
                                         f.getAbsolutePath()));
                 return;
             }

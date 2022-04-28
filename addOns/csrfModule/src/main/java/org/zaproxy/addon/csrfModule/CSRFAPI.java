@@ -28,14 +28,14 @@ import org.zaproxy.zap.extension.api.ApiImplementor;
 import org.zaproxy.zap.extension.api.ApiResponse;
 import org.zaproxy.zap.extension.api.ApiResponseElement;
 
-public class SimpleExampleAPI extends ApiImplementor {
+public class CSRFAPI extends ApiImplementor {
     private static final String PREFIX = "csrfModule";
 
     private static final String ACTION_HELLO_WORLD = "helloWorld";
 
-    private static final Logger LOGGER = LogManager.getLogger(SimpleExampleAPI.class);
+    private static final Logger LOGGER = LogManager.getLogger(CSRFAPI.class);
 
-    public SimpleExampleAPI() {
+    public CSRFAPI() {
         this.addApiAction(new ApiAction(ACTION_HELLO_WORLD));
     }
 
