@@ -28,6 +28,11 @@ import org.zaproxy.zap.extension.api.ApiImplementor;
 import org.zaproxy.zap.extension.api.ApiResponse;
 import org.zaproxy.zap.extension.api.ApiResponseElement;
 
+/**
+ * 
+ * @author Ales Repas
+ * API
+ */
 public class CSRFAPI extends ApiImplementor {
     private static final String PREFIX = "csrfModule";
 
