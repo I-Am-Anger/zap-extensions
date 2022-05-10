@@ -13,17 +13,15 @@ import org.zaproxy.zap.extension.pscan.PluginPassiveScanner;
 /**
  * Checks web requests for presence of Origin header
  * 
- * @author Ales Repas
  */
 public class OriginMissingScanRule extends PluginPassiveScanner {
 
 	/** Prefix for internationalised messages used by this rule */
 	private static final String MESSAGE_PREFIX = "pscanrules.originmissing.";
 
-	public static final String ORIGIN = "Origin";
+	private static final String ORIGIN = "Origin";
 
-	private static final Map<String, String> ALERT_TAGS = CommonAlertTag.toMap(CommonAlertTag.OWASP_2021_A01_BROKEN_AC,
-			CommonAlertTag.OWASP_2017_A05_BROKEN_AC);
+	private static final Map<String, String> ALERT_TAGS = CommonAlertTag.toMap(CommonAlertTag.OWASP_2021_A05_SEC_MISCONFIG);
 
 	private static final int PLUGIN_ID = 10178;
 
@@ -33,9 +31,15 @@ public class OriginMissingScanRule extends PluginPassiveScanner {
 		String baseUrl = msg.getRequestHeader().getURI().toString();
 		boolean missingOrigin = origin.isEmpty();
 		if (missingOrigin) {
-			this.raiseAlert(msg, id, missingOrigin);
+			this.raiseAlert(msg, id, true);
 			return;
 		}
+		if(!isInScope(origin, baseUrl)) {
+			this.raiseAlert(msg, id, false);
+		}
+	}
+	
+	private boolean isInScope(List<String> origin, String baseUrl) {
 		String originUrl = origin.get(0);
 		int oLen = originUrl.length();
 		int bLen = baseUrl.length();
@@ -46,16 +50,25 @@ public class OriginMissingScanRule extends PluginPassiveScanner {
 			shorterUrl = baseUrl;
 		}
 		if (!longerUrl.contains(shorterUrl)) {
-			this.raiseAlert(msg, id, missingOrigin);
+			return false;
 		}
+		return true;
 	}
 
-	private void raiseAlert(HttpMessage msg, int id, boolean missingOrigin) {
-		String issue = getName(missingOrigin);
+	private void raiseAlert(HttpMessage msg, int id, boolean state) {
+		String issue = getName(state);
 
-		newAlert().setName(issue).setRisk(getRisk(missingOrigin)).setConfidence(Alert.CONFIDENCE_MEDIUM)
-				.setDescription(getDescription(missingOrigin)).setParam(ORIGIN).setSolution(getSolution(missingOrigin))
-				.setReference(getReference()).setCweId(getCweId()).setWascId(getWascId()).raise();
+		newAlert()
+			.setName(issue)
+			.setRisk(getRisk(state))
+			.setConfidence(Alert.CONFIDENCE_MEDIUM)
+			.setDescription(getDescription(state))
+			.setParam(ORIGIN)
+			.setSolution(getSolution(state))
+			.setReference(getReference())
+			.setCweId(getCweId())
+			.setWascId(getWascId())
+			.raise();
 	}
 
 	@Override

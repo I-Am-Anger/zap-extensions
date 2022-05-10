@@ -13,7 +13,6 @@ import org.zaproxy.zap.extension.pscan.PluginPassiveScanner;
 /**
  * Checks web requests for presence of Referer header
  * 
- * @author Ales Repas
  *
  */
 public class RefererMissingScanRule extends PluginPassiveScanner {
