@@ -78,15 +78,15 @@ public class OriginScanRule extends PluginPassiveScanner {
 
 	@Override
 	public String getName() {
-		return Constant.messages.getString(MESSAGE_PREFIX + "name.inc");
+		return Constant.messages.getString(MESSAGE_PREFIX + "name");
 	}
 
 	public String getDescription() {
-		return Constant.messages.getString(MESSAGE_PREFIX + "desc.inc");
+		return Constant.messages.getString(MESSAGE_PREFIX + "desc");
 	}
 
 	public String getSolution() {
-		return Constant.messages.getString(MESSAGE_PREFIX + "soln.inc");
+		return Constant.messages.getString(MESSAGE_PREFIX + "soln");
 	}
 
 	public String getReference() {

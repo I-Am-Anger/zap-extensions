@@ -29,9 +29,7 @@ import org.parosproxy.paros.core.scanner.AbstractAppParamPlugin;
 import org.parosproxy.paros.core.scanner.Alert;
 import org.parosproxy.paros.core.scanner.Category;
 import org.parosproxy.paros.network.HttpHeader;
-import org.parosproxy.paros.network.HttpHeaderField;
 import org.parosproxy.paros.network.HttpMessage;
-import org.parosproxy.paros.network.HttpRequestHeader;
 import org.zaproxy.addon.commonlib.CommonAlertTag;
 
 /**
@@ -93,15 +91,13 @@ public class RefererScanRule extends AbstractAppParamPlugin {
 					.setParam(HttpHeader.REFERER)
 					.setAttack("Cross Site Request Forgery")
 					.setMessage(msg)
-					.setDescription(getDescription() + ". " + cause)
+					.setDescription(getDescription() + " " + cause)
 					.raise();
 	}
 
     @Override
     public void scan(HttpMessage sourceMsg, String param, String value) {
     	
-    	String report = "";
-
         try {
         	
             int retCode;
@@ -123,20 +119,20 @@ public class RefererScanRule extends AbstractAppParamPlugin {
                 return;
             }          
 
-            String origin = msg.getRequestHeader().getHeader(HttpHeader.REFERER);       
-            verifyCode = msg.getResponseHeader().getStatusCode(); // save status code for testing
+            List<String> referer = msg.getRequestHeader().getHeaderValues(HttpHeader.REFERER);       
             
-            if(origin == null) {
+            if(referer.isEmpty()) {
          	   // raiseAlert(msg, param, "Referer was not found during active testing."); // referrer was not found. Do not raise an alert, passive scan already did that
          	   return; // if referrer was not found, application doesn't react to its' tampering
             }
+            verifyCode = msg.getResponseHeader().getStatusCode(); // save status code for testing
             
             // delete referrer in header and check
-            msg = sourceMsg.cloneRequest();
-            msg.setRequestHeader(copyRequestNoReferer(sourceMsg.getRequestHeader()));
+            HttpMessage msg2 = sourceMsg.cloneRequest();
+            msg2.getRequestHeader().setHeader(HttpHeader.REFERER, null);
             
             try {
-                sendAndReceive(msg);
+                sendAndReceive(msg2);
             } catch (URIException e) {
                 log.debug("Failed to send HTTP message, cause: {}", e.getMessage());
                 return;
@@ -146,19 +142,18 @@ public class RefererScanRule extends AbstractAppParamPlugin {
                 return;
             }       
             
-            retCode = msg.getResponseHeader().getStatusCode();
+            retCode = msg2.getResponseHeader().getStatusCode();
             
             if(verifyCode == retCode) {
-         	    raiseAlert(msg, param, "Referer was removed, website didn't react to change.");
+         	    raiseAlert(sourceMsg, param, "Referer was removed, website didn't react to change.");
             }
             
             // set origin to fake site header and check
-            msg = sourceMsg.cloneRequest();
-            msg.setRequestHeader(copyRequestNoReferer(sourceMsg.getRequestHeader()));
-            msg.getRequestHeader().addHeader(HttpHeader.REFERER, FAKE_WEBSITE);
+            HttpMessage msg3 = sourceMsg.cloneRequest();
+            msg3.getRequestHeader().setHeader(HttpHeader.REFERER, FAKE_WEBSITE);
             
             try {
-                sendAndReceive(msg);
+                sendAndReceive(msg3);
             } catch (URIException e) {
                 log.debug("Failed to send HTTP message, cause: {}", e.getMessage());
                 return;
@@ -168,14 +163,10 @@ public class RefererScanRule extends AbstractAppParamPlugin {
                 return;
             }       
             
-            retCode = msg.getResponseHeader().getStatusCode();
+            retCode = msg3.getResponseHeader().getStatusCode();
             
             if(verifyCode == retCode) {
-         	    raiseAlert(msg, param, "Referer was set to fake website, website didn't react to change.");
-            }
-            
-            if(!report.isEmpty()) {
-            	raiseAlert(msg, param, report);
+         	    raiseAlert(sourceMsg, param, "Referer was set to fake website, website didn't react to change.");
             }
             
         } catch (Exception e) {
@@ -187,7 +178,7 @@ public class RefererScanRule extends AbstractAppParamPlugin {
      * Copies request header without referrer present
      * @param h HttpRequestHeader
      * @return HttpRequestHeader
-     */
+     */ /*
     private HttpRequestHeader copyRequestNoReferer(HttpRequestHeader h) {
     	HttpRequestHeader ret = new HttpRequestHeader();
     	List<HttpHeaderField> fields = h.getHeaders();
@@ -202,7 +193,7 @@ public class RefererScanRule extends AbstractAppParamPlugin {
             log.error(e.getMessage(), e);
 		}
     	return ret;
-    }
+    } */
 
     @Override
     public int getRisk() {

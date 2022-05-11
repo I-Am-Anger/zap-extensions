@@ -28,9 +28,7 @@ import org.parosproxy.paros.Constant;
 import org.parosproxy.paros.core.scanner.AbstractAppParamPlugin;
 import org.parosproxy.paros.core.scanner.Alert;
 import org.parosproxy.paros.core.scanner.Category;
-import org.parosproxy.paros.network.HttpHeaderField;
 import org.parosproxy.paros.network.HttpMessage;
-import org.parosproxy.paros.network.HttpRequestHeader;
 import org.zaproxy.addon.commonlib.CommonAlertTag;
 
 public class OriginScanRule extends AbstractAppParamPlugin {
@@ -116,10 +114,10 @@ public class OriginScanRule extends AbstractAppParamPlugin {
                 return;
             }     
             
-            String origin = msg.getRequestHeader().getHeader(ORIGIN);    
+            List<String> origin = msg.getRequestHeader().getHeaderValues(ORIGIN);    
             
             // origin is not present
-            if(origin == null) {
+            if(origin.isEmpty()) {	
          	    // raiseAlert(msg, param, "Origin was not found during active testing."); Do not raise an alert, passive scanning already did that
          	    return; // application doesn't react to origin tampering
             }     
@@ -129,7 +127,7 @@ public class OriginScanRule extends AbstractAppParamPlugin {
             // detect if website reacts to removing origin
             
             HttpMessage msg2 = sourceMsg.cloneRequest();
-            msg2.setRequestHeader(copyRequestNoOrigin(sourceMsg.getRequestHeader()));
+            msg2.getRequestHeader().setHeader(ORIGIN, null);
             
             try {
                 sendAndReceive(msg2, false);
@@ -145,13 +143,12 @@ public class OriginScanRule extends AbstractAppParamPlugin {
             retCode = msg2.getResponseHeader().getStatusCode();
             
             if(verifyCode == retCode) {
-            	raiseAlert(msg2, param, "Origin was removed, website didn't react to change.");
+            	raiseAlert(sourceMsg, param, "Origin was removed, website didn't react to change.");
             }
             
             // detect if website reacts to fake website in origin
             HttpMessage msg3 = sourceMsg.cloneRequest();
-            msg3.setRequestHeader(copyRequestNoOrigin(sourceMsg.getRequestHeader()));
-            msg3.getRequestHeader().addHeader(ORIGIN, FAKE_WEBSITE);
+            msg3.getRequestHeader().setHeader(ORIGIN, FAKE_WEBSITE);
             
             try {
                 sendAndReceive(msg3, false);
@@ -167,7 +164,7 @@ public class OriginScanRule extends AbstractAppParamPlugin {
             retCode = msg3.getResponseHeader().getStatusCode();
             
             if(verifyCode == retCode) {
-            	raiseAlert(msg3, param, "Origin was set to fake website, website didn't react to change.");
+            	raiseAlert(sourceMsg, param, "Origin was set to fake website, website didn't react to change.");
             }
             
         } catch (Exception e) {
@@ -179,7 +176,7 @@ public class OriginScanRule extends AbstractAppParamPlugin {
      * Copies request header without origin present
      * @param h HttpRequestHeader
      * @return HttpRequestHeader
-     */
+     */ /*
     private HttpRequestHeader copyRequestNoOrigin(HttpRequestHeader h) {
     	HttpRequestHeader ret = new HttpRequestHeader();
     	List<HttpHeaderField> fields = h.getHeaders();
@@ -194,7 +191,7 @@ public class OriginScanRule extends AbstractAppParamPlugin {
             log.error(e.getMessage(), e);
 		}
     	return ret;
-    }
+    }*/
 
     @Override
     public int getRisk() {
