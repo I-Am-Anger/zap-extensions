@@ -19,31 +19,19 @@
  */
 package org.zaproxy.zap.extension.ascanrules;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-
 import org.apache.commons.httpclient.URIException;
-import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.parosproxy.paros.Constant;
 import org.parosproxy.paros.core.scanner.AbstractAppParamPlugin;
 import org.parosproxy.paros.core.scanner.Alert;
 import org.parosproxy.paros.core.scanner.Category;
-import org.parosproxy.paros.core.scanner.NameValuePair;
-import org.parosproxy.paros.core.scanner.Plugin;
-import org.parosproxy.paros.network.HttpHeader;
 import org.parosproxy.paros.network.HttpHeaderField;
 import org.parosproxy.paros.network.HttpMessage;
 import org.parosproxy.paros.network.HttpRequestHeader;
 import org.zaproxy.addon.commonlib.CommonAlertTag;
-import org.zaproxy.addon.commonlib.SourceSinkUtils;
-import org.zaproxy.zap.extension.ascanrules.httputils.HtmlContext;
-import org.zaproxy.zap.extension.ascanrules.httputils.HtmlContextAnalyser;
-import org.zaproxy.zap.model.Vulnerabilities;
-import org.zaproxy.zap.model.Vulnerability;
 
 public class OriginScanRule extends AbstractAppParamPlugin {
 
@@ -107,16 +95,14 @@ public class OriginScanRule extends AbstractAppParamPlugin {
 
     @Override
     public void scan(HttpMessage sourceMsg, String param, String value) {
-    	
-    	// String report = "";
-    	// boolean vuln = false;
 
         try {
         	
-            int retCode;
             int verifyCode;
+            int retCode;
             
-            // is origin present in header?
+            // detect is origin is present
+            
             HttpMessage msg = sourceMsg.cloneRequest();
             
             try {
@@ -128,18 +114,20 @@ public class OriginScanRule extends AbstractAppParamPlugin {
 
             if (isStop()) {
                 return;
-            }       
+            }     
             
-            String origin = msg.getRequestHeader().getHeader(ORIGIN);       
-            verifyCode = msg.getResponseHeader().getStatusCode(); // save status code for testing
+            String origin = msg.getRequestHeader().getHeader(ORIGIN);    
             
+            // origin is not present
             if(origin == null) {
-            	// vuln = true;
-            	// report += "Origin was not found during active testing.\n";
-         	    raiseAlert(msg, param, "Origin was not found during active testing."); // Origin was not found in active testing
-            }
+         	    // raiseAlert(msg, param, "Origin was not found during active testing."); Do not raise an alert, passive scanning already did that
+         	    return; // application doesn't react to origin tampering
+            }     
+            verifyCode = msg.getResponseHeader().getStatusCode();
             
-            // delete origin in header and check
+            
+            // detect if website reacts to removing origin
+            
             HttpMessage msg2 = sourceMsg.cloneRequest();
             msg2.setRequestHeader(copyRequestNoOrigin(sourceMsg.getRequestHeader()));
             
@@ -157,12 +145,10 @@ public class OriginScanRule extends AbstractAppParamPlugin {
             retCode = msg2.getResponseHeader().getStatusCode();
             
             if(verifyCode == retCode) {
-            	// vuln = true;
-            	// report += "Origin was removed, website didn't react to change.\n";
             	raiseAlert(msg2, param, "Origin was removed, website didn't react to change.");
             }
             
-            // set origin to fake website header and check
+            // detect if website reacts to fake website in origin
             HttpMessage msg3 = sourceMsg.cloneRequest();
             msg3.setRequestHeader(copyRequestNoOrigin(sourceMsg.getRequestHeader()));
             msg3.getRequestHeader().addHeader(ORIGIN, FAKE_WEBSITE);
@@ -181,14 +167,8 @@ public class OriginScanRule extends AbstractAppParamPlugin {
             retCode = msg3.getResponseHeader().getStatusCode();
             
             if(verifyCode == retCode) {
-            	// vuln = true;
-            	// report += "Origin was set to fake website, website didn't react to change.\n";
             	raiseAlert(msg3, param, "Origin was set to fake website, website didn't react to change.");
             }
-            
-            /* if(vuln) {
-            	raiseAlert(msg, param, report);
-            } */
             
         } catch (Exception e) {
             log.error(e.getMessage(), e);
@@ -228,11 +208,11 @@ public class OriginScanRule extends AbstractAppParamPlugin {
 
     @Override
     public int getCweId() {
-        return 1385;
+		return 1385; // CWE Id 1385
     }
 
     @Override
     public int getWascId() {
-        return 9;
+		return 9; // WASCId 9 - CSRF
     }
 }

@@ -19,32 +19,25 @@
  */
 package org.zaproxy.zap.extension.ascanrules;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-
 import org.apache.commons.httpclient.URIException;
-import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.parosproxy.paros.Constant;
 import org.parosproxy.paros.core.scanner.AbstractAppParamPlugin;
 import org.parosproxy.paros.core.scanner.Alert;
 import org.parosproxy.paros.core.scanner.Category;
-import org.parosproxy.paros.core.scanner.NameValuePair;
-import org.parosproxy.paros.core.scanner.Plugin;
 import org.parosproxy.paros.network.HttpHeader;
 import org.parosproxy.paros.network.HttpHeaderField;
 import org.parosproxy.paros.network.HttpMessage;
 import org.parosproxy.paros.network.HttpRequestHeader;
 import org.zaproxy.addon.commonlib.CommonAlertTag;
-import org.zaproxy.addon.commonlib.SourceSinkUtils;
-import org.zaproxy.zap.extension.ascanrules.httputils.HtmlContext;
-import org.zaproxy.zap.extension.ascanrules.httputils.HtmlContextAnalyser;
-import org.zaproxy.zap.model.Vulnerabilities;
-import org.zaproxy.zap.model.Vulnerability;
 
+/**
+ * This rule checks tampering of origin in web requests
+ *
+ */
 public class RefererScanRule extends AbstractAppParamPlugin {
 
     private static final String MESSAGE_PREFIX = "ascanrules.referer.";
@@ -115,7 +108,7 @@ public class RefererScanRule extends AbstractAppParamPlugin {
             int verifyCode;
 
             // is referrer present in header?
-            HttpMessage msg = getNewMsg();
+            HttpMessage msg = sourceMsg.cloneRequest();
             
             log.debug("REFERER: " + msg.getRequestHeader().toString());
             
@@ -134,12 +127,12 @@ public class RefererScanRule extends AbstractAppParamPlugin {
             verifyCode = msg.getResponseHeader().getStatusCode(); // save status code for testing
             
             if(origin == null) {
-            	report += "Referer was not found during active testing.\n";
-         	   	// raiseAlert(msg, param, "Referer was not found during active testing."); // referer was not found in active testing
+         	   // raiseAlert(msg, param, "Referer was not found during active testing."); // referrer was not found. Do not raise an alert, passive scan already did that
+         	   return; // if referrer was not found, application doesn't react to its' tampering
             }
             
             // delete referrer in header and check
-            msg = getNewMsg();
+            msg = sourceMsg.cloneRequest();
             msg.setRequestHeader(copyRequestNoReferer(sourceMsg.getRequestHeader()));
             
             try {
@@ -156,12 +149,11 @@ public class RefererScanRule extends AbstractAppParamPlugin {
             retCode = msg.getResponseHeader().getStatusCode();
             
             if(verifyCode == retCode) {
-            	report += "Origin was removed, website didn't react to change.\n";
-         	    // raiseAlert(msg, param, "Referer was removed, website didn't react to change.");
+         	    raiseAlert(msg, param, "Referer was removed, website didn't react to change.");
             }
             
-            // set origin to fake website header and check
-            msg = getNewMsg();
+            // set origin to fake site header and check
+            msg = sourceMsg.cloneRequest();
             msg.setRequestHeader(copyRequestNoReferer(sourceMsg.getRequestHeader()));
             msg.getRequestHeader().addHeader(HttpHeader.REFERER, FAKE_WEBSITE);
             
@@ -179,8 +171,7 @@ public class RefererScanRule extends AbstractAppParamPlugin {
             retCode = msg.getResponseHeader().getStatusCode();
             
             if(verifyCode == retCode) {
-            	report += "Origin was set to fake website, website didn't react to change.\n";
-         	    // raiseAlert(msg, param, "Referer was set to fake website, website didn't react to change.");
+         	    raiseAlert(msg, param, "Referer was set to fake website, website didn't react to change.");
             }
             
             if(!report.isEmpty()) {
@@ -215,7 +206,7 @@ public class RefererScanRule extends AbstractAppParamPlugin {
 
     @Override
     public int getRisk() {
-        return Alert.RISK_MEDIUM;
+        return Alert.RISK_LOW;
     }
 
     @Override
@@ -225,11 +216,11 @@ public class RefererScanRule extends AbstractAppParamPlugin {
 
     @Override
     public int getCweId() {
-        return 1385;
+		return 293; // CWE Id 293
     }
 
     @Override
     public int getWascId() {
-        return 9;
+		return 9; // WASCId 9 - CSRF
     }
 }

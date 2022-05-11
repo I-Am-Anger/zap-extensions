@@ -3,9 +3,11 @@ package org.zaproxy.zap.extension.pscanrules;
 import java.util.List;
 import java.util.Map;
 import net.htmlparser.jericho.Source;
+
+import org.apache.commons.httpclient.URI;
+import org.apache.commons.httpclient.URIException;
 import org.parosproxy.paros.Constant;
 import org.parosproxy.paros.core.scanner.Alert;
-import org.parosproxy.paros.network.HttpHeader;
 import org.parosproxy.paros.network.HttpMessage;
 import org.zaproxy.addon.commonlib.CommonAlertTag;
 import org.zaproxy.zap.extension.pscan.PluginPassiveScanner;
@@ -14,10 +16,10 @@ import org.zaproxy.zap.extension.pscan.PluginPassiveScanner;
  * Checks web requests for presence of Origin header
  * 
  */
-public class OriginMissingScanRule extends PluginPassiveScanner {
+public class OriginScanRule extends PluginPassiveScanner {
 
 	/** Prefix for internationalised messages used by this rule */
-	private static final String MESSAGE_PREFIX = "pscanrules.originmissing.";
+	private static final String MESSAGE_PREFIX = "pscanrules.origin.";
 
 	private static final String ORIGIN = "Origin";
 
@@ -28,43 +30,46 @@ public class OriginMissingScanRule extends PluginPassiveScanner {
 	@Override
 	public void scanHttpResponseReceive(HttpMessage msg, int id, Source source) {
 		List<String> origin = msg.getRequestHeader().getHeaderValues(ORIGIN);
-		String baseUrl = msg.getRequestHeader().getURI().toString();
-		boolean missingOrigin = origin.isEmpty();
-		if (missingOrigin) {
-			this.raiseAlert(msg, id, true);
+		URI baseURI = msg.getRequestHeader().getURI();
+		
+		if (origin.isEmpty()) {
+			return; // nothing to check
+		}
+		
+		// check if scope is equal
+		URI origURI;
+		String originVal = origin.get(0);
+		try {
+			origURI = new URI(originVal, false);
+		} catch (URIException | NullPointerException e) {
 			return;
 		}
-		if(!isInScope(origin, baseUrl)) {
-			this.raiseAlert(msg, id, false);
+		try {
+		if (!baseURI.getHost().equals(origURI.getHost())) {
+				this.raiseAlert(msg, id,  "Base URI: " + baseURI.getHost() + "\nrOrigin URI: " + origURI.getHost());
+			}
+		} catch (URIException e) {
+			return;
 		}
 	}
-	
-	private boolean isInScope(List<String> origin, String baseUrl) {
-		String originUrl = origin.get(0);
-		int oLen = originUrl.length();
-		int bLen = baseUrl.length();
-		String longerUrl = baseUrl;
-		String shorterUrl = originUrl;
-		if (oLen >= bLen) {
-			longerUrl = originUrl;
-			shorterUrl = baseUrl;
-		}
-		if (!longerUrl.contains(shorterUrl)) {
-			return false;
-		}
-		return true;
-	}
 
-	private void raiseAlert(HttpMessage msg, int id, boolean state) {
-		String issue = getName(state);
-
+	/**
+	 * Raises alert
+	 * @param msg HttpMessage
+	 * @param id int
+	 * @param String param
+	 */
+	private void raiseAlert(HttpMessage msg, int id, String param) {
+		// creates new alert
+		
 		newAlert()
-			.setName(issue)
-			.setRisk(getRisk(state))
+			.setName(getName())
+			.setRisk(getRisk())
 			.setConfidence(Alert.CONFIDENCE_MEDIUM)
-			.setDescription(getDescription(state))
+			.setDescription(getDescription())
 			.setParam(ORIGIN)
-			.setSolution(getSolution(state))
+			.setOtherInfo(param)
+			.setSolution(getSolution())
 			.setReference(getReference())
 			.setCweId(getCweId())
 			.setWascId(getWascId())
@@ -73,27 +78,14 @@ public class OriginMissingScanRule extends PluginPassiveScanner {
 
 	@Override
 	public String getName() {
-		return Constant.messages.getString(MESSAGE_PREFIX + "name");
-	}
-
-	public String getName(boolean missingOrigin) {
-		if (missingOrigin) {
-			return Constant.messages.getString(MESSAGE_PREFIX + "name");
-		}
 		return Constant.messages.getString(MESSAGE_PREFIX + "name.inc");
 	}
 
-	public String getDescription(boolean missingOrigin) {
-		if (missingOrigin) {
-			return Constant.messages.getString(MESSAGE_PREFIX + "desc");
-		}
+	public String getDescription() {
 		return Constant.messages.getString(MESSAGE_PREFIX + "desc.inc");
 	}
 
-	public String getSolution(boolean missingOrigin) {
-		if (missingOrigin) {
-			return Constant.messages.getString(MESSAGE_PREFIX + "soln");
-		}
+	public String getSolution() {
 		return Constant.messages.getString(MESSAGE_PREFIX + "soln.inc");
 	}
 
@@ -114,10 +106,7 @@ public class OriginMissingScanRule extends PluginPassiveScanner {
 		return 9; // WASCId 9 - CSRF
 	}
 
-	public int getRisk(boolean missingOrigin) {
-		if (missingOrigin) {
-			return Alert.RISK_LOW;
-		}
+	public int getRisk() {
 		return Alert.RISK_INFO;
 	}
 
